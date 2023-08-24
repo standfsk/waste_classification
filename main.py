@@ -8,6 +8,7 @@ import json
 import pandas as pd
 import numpy as np
 import cv2
+import ast
 
 if __name__ == '__main__':
     # 데이터셋 경로 설정
@@ -36,23 +37,26 @@ if __name__ == '__main__':
         '플라스틱류': 'plastic'
     }
 
+    # 필요 이미지 속성 리스트
+    headers = ['MAKE', 'Camera Model Name', 'resolution', 'iso', 'daynight', 'place', 'obj_class', 'obj_color', 'bbox']
+
     # 확장자
     image_ext = ['jpg', 'png']
     json_ext = ['json', 'Json']
 
-    # 라벨링 데이터 내에 필요없는 클래스의 자료들 삭제
-    data_preprocessing.folders_by_classes(f'{dataset_path}/Training/Training_라벨링데이터')
-    data_preprocessing.folders_by_classes(f'{dataset_path}/Validation/[V라벨링]라벨링데이터')
+    # 이미지 사이즈
+    img_size = (640, 640)
 
-    # 파일 이동
-    data_preprocessing.gather_data(dataset_path)
+    # # 라벨링 데이터 내에 필요없는 클래스의 자료들 삭제
+    # data_preprocessing.folders_by_classes(f'{dataset_path}/Training/Training_라벨링데이터')
+    # data_preprocessing.folders_by_classes(f'{dataset_path}/Validation/[V라벨링]라벨링데이터')
+
+    # # 전체 파일 이동 // dataset_path -> data_path
+    # data_preprocessing.gather_data(dataset_path, data_path)
 
     # 누락 데이터 제거
     # 1차 json 파일 리스트
     json_files = [x for x in os.listdir(data_path) if x.split('.')[-1] in json_ext]
-
-    # 필요 이미지 속성 리스트
-    headers = ['MAKE', 'Camera Model Name', 'resolution', 'iso', 'daynight', 'place', 'obj_class', 'obj_color', 'bbox']
 
     # 이미지 속성 값 추출
     image_properties = {}
@@ -95,11 +99,11 @@ if __name__ == '__main__':
         image_properties[f] = values
 
     # 이미지 속성값 csv파일로 저장
-    df = pd.data_dframe.from_dict(image_properties, orient='index', columns=headers)
+    df = pd.DataFrame.from_dict(image_properties, orient='index', columns=headers)
     df.to_csv(os.path.join('data1.csv'), encoding='cp949')
 
     # 제거할 이미지 csv파일로 저장
-    df2 = pd.data_dframe.from_dict(removed_files, orient='index', columns=['reason'])
+    df2 = pd.DataFrame.from_dict(removed_files, orient='index', columns=['reason'])
     df2.to_csv(os.path.join('removed_data1.csv'), encoding='cp949')
 
     # 파일 리스트
@@ -115,11 +119,6 @@ if __name__ == '__main__':
         ftype = f.split('.')[-1]
         if f.split('.')[0] in unused:
             os.remove(os.path.join(data_path, f))
-        # else:
-        #     if ftype.lower() in image_ext:
-        #         shutil.move(os.path.join(data_path, f), os.path.join(data_path, 'image', f))
-        #     elif ftype.lower() in json_ext:
-        #         shutil.move(os.path.join(data_path, f), os.path.join(data_path, 'label', f))
 
     # 디렉터리가 없을 경우, 생성
     if not os.path.isdir(os.path.join(data_path, 'train')):
@@ -127,8 +126,7 @@ if __name__ == '__main__':
 
     # csv파일 정보를 기반으로 텍스트 파일 생성 // img_size, bbox,  obj_class
     data_df = pd.read_csv('data1.csv')
-    label_data_path = os.path.join(data_path, 'jsons')
-    j_fs = [x for x in os.listdir(label_data_path) if x.split('.')[-1] in json_ext]
+    j_fs = [x for x in os.listdir(data_path) if x.split('.')[-1] in json_ext]
     for j_f in j_fs:
         row = data_df[data_df.iloc[:,0] == j_f]
         img_size = list(map(int, row['resolution'].values[0].split('*')))
@@ -139,56 +137,40 @@ if __name__ == '__main__':
         with open(f'{os.path.join(data_path, j_f.split(".")[0])}.txt', 'w') as txtfile:
             txtfile.write(f'{classes_to_code[obj_class]} {x} {y} {w} {h}')
 
-    # 파일을 8:1:1 비율로 분배
-    json_files = [x for x in os.listdir(data_path) if x.split('.')[-1] in ['Json', 'json']]
-    image_files = [x for x in os.listdir(data_path) if x.split('.')[-1] in ['jpg', 'png']]
+    # 데이터 전처리
+    json_files = [x for x in os.listdir(data_path) if x.split('.')[-1] in json_ext]
+    image_files = [x for x in os.listdir(data_path) if x.split('.')[-1] in image_ext]
+    for image_file in image_files:
+        # 이미지 데이터 복사
+        shutil.copy(os.path.join(data_path, image_file), os.path.join(data_path, image_file.split('.')[0] + '_copy.jpg'))
+        # 이미지 데이터 resize
+        img = cv2.imread(os.path.join(data_path, image_file))
+        resized_img = cv2.resize(img, dsize=(img_size), interpolation=cv2.INTER_LINEAR)
+        cv2.imwrite(os.path.join(data_path, image_file), resized_img)
+        # 라벨 데이터 전처리
+        bbox_resized = data_preprocessing.resize_bbox(img, resized_img, os.path.join(data_path, image_file.split('.')[0]+'.json'))
+        data_preprocessing.change_bbox(bbox_resized, os.path.join(data_path, image_file.split('.')[0]+'.json'), os.path.join(data_path, image_file.split('.')[0]+'.json'))
+        # 이미지 데이터 표준화
+        normalized_image = data_preprocessing.normalize_image(resized_img)
+        # 원본데이터 imgs 폴더로 이동
+        shutil.move(os.path.join(data_path, image_file.split('.')[0] + '_copy.jpg'), os.path.join(data_path, 'imgs', image_file))
 
+    # 파일을 8:1:1 비율로 분배
+    # 훈련 데이터
     train_files, val_files, test_files = np.split(np.array(image_files), [int(len(image_files)*0.8), int(len(image_files)*0.9)])
     all_files = {'train': train_files, 'val': val_files, 'test': test_files}
     for key, value in all_files.items():
         data_preprocessing.move_by_dirs(key, data_path, value)
 
+    # 백업 파일 저장
     for j_f in json_files:
         shutil.move(os.path.join(data_path, j_f), os.path.join(data_path, 'jsons', j_f))
-
-    #image/label folder의 데이터를 data_path로 이동시키기
-    sub_dir = 'train'
-    image_data_path = os.path.join(data_path, sub_dir, 'images')
-    label_data_path = os.path.join(data_path, sub_dir, 'labels')
-
-    images = [x for x in os.listdir(image_data_path)]
-    labels = [x for x in os.listdir(label_data_path)]
-
-    for image in images:
-        shutil.move(os.path.join(image_data_path, image), os.path.join(data_path, image))
-
-    for label in labels:
-        shutil.move(os.path.join(label_data_path, label), os.path.join(data_path, label))
-
-    # 이미지 데이터명 변경 
-    sub_dir = ['train', 'test', 'val']
-    for sub in sub_dir:
-        image_data_path = os.path.join(data_path, sub, 'images')
-        image_datas = [x for x in os.listdir(image_data_path)]
-        for image_data in image_datas:
-            os.rename(os.path.join(image_data_path, image_data), os.path.join(image_data_path, image_data.split('.')[0] + '_copy.jpg'))
-
-    # 이미지 데이터 resize 및 원본데이터 imgs 폴더로 이동
-    sub_dir = ['train', 'test', 'val']
-    for sub in sub_dir:
-        image_data_path = os.path.join(data_path, sub, 'images')
-        image_datas = [x for x in os.listdir(image_data_path) if x.endswith('_copy.jpg')]
-        for image_data in image_datas:
-            img = cv2.imread(os.path.join(image_data_path, image_data))
-            resized_img = cv2.resize(img, dsize=(640,640), interpolation=cv2.INTER_LINEAR)
-            cv2.imwrite(os.path.join(image_data_path, '_'.join(image_data.split('_')[:-1]) + '.jpg'), resized_img)
-            shutil.move(os.path.join(image_data_path, image_data), os.path.join(data_path, 'imgs', f"{'_'.join(image_data.split('_')[:-1])}.jpg"))
 
     # 작업 종료시 슬랙에 메시지 전송
     from slackbot_run import SlackAPI
     token = 'xoxb-5713411137014-5773768770325-TvV4SRyB8WMOwl7yh3SO69Dx'
     slack = SlackAPI(token)
     channel_name = 'slackbot_'
-    text = '끝'
+    text = '데이터 전처리 끝'
     channel_id = slack.get_channel_id(channel_name)
     slack.post_message(channel_id, text)

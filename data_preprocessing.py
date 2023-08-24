@@ -2,6 +2,7 @@ import os
 import shutil
 import json
 import cv2
+import numpy as np
 
 # 값이 디렉터리 인지 확인
 def check_dir(path):
@@ -55,15 +56,16 @@ def create_folders(path):
     os.makedirs(os.path.join(test_path, 'images'))
     os.makedirs(os.path.join(test_path, 'labels'))
     os.mkdir(os.path.join(path, 'jsons'))
+    os.mkdir(os.path.join(path, 'imgs'))
 
 # 디렉터리별로 데이터 분배
-def move_by_dirs(dir, path, files, data_path):
+def move_by_dirs(dir, path, files):
     img_path = os.path.join(path, dir, 'images')
     lbl_path = os.path.join(path, dir, 'labels')
     for f in files:
         txtfile = f.split('.')[0] + '.txt'
-        shutil.move(os.path.join(data_path, f), os.path.join(img_path, f))
-        shutil.move(os.path.join(data_path, txtfile), os.path.join(lbl_path, txtfile))
+        shutil.move(os.path.join(path, f), os.path.join(img_path, f))
+        shutil.move(os.path.join(path, txtfile), os.path.join(lbl_path, txtfile))
 
 # bbox 정보를 yolo 형태로 변환
 def bboxtoyoloformat(size, box):
@@ -79,6 +81,7 @@ def bboxtoyoloformat(size, box):
     h = h*dh
     return (x,y,w,h)
 
+# bbox의 정보를 변경
 def change_bbox(values, json_file, changed_json):
     import json
     x1,y1,x2,y2 = list(map(str, values))
@@ -92,16 +95,24 @@ def change_bbox(values, json_file, changed_json):
     with open(changed_json, 'w', encoding='utf-8') as c_j:
         json.dump(data, c_j, indent=4, ensure_ascii=False)
 
-def resize_bbox(image_path, json_path, img_size):
-    img = cv2.imread(image_path)
-    img_resized = cv2.resize(img, dsize=(img_size), interpolation=cv2.INTER_LINEAR)
-    with open(json_path, 'r', encoding='utf-8') as j_f:
+# 이미지의 resize 비율만큼 bbox값 계산
+def resize_bbox(image, resized_image, json_file):
+    with open(json_file, 'r', encoding='utf-8') as j_f:
         data = json.load(j_f)
     x1 = int(data['Bounding'][0]['x1'])
     y1 = int(data['Bounding'][0]['y1'])
     x2 = int(data['Bounding'][0]['x2'])
     y2 = int(data['Bounding'][0]['y2'])
-    y_ratio = img_resized.shape[0] / img.shape[0]
-    x_ratio = img_resized.shape[1] / img.shape[1]
+    y_ratio = resized_image.shape[0] / image.shape[0]
+    x_ratio = resized_image.shape[1] / image.shape[1]
     bbox_resized = list(map(round, [x1*x_ratio, y1*y_ratio, x2*x_ratio, y2*y_ratio]))
     return bbox_resized
+
+# 이미지 데이터 표준화
+def normalize_image(image):
+    normalized_r = image[:, :, 0] / 255.0
+    normalized_g = image[:, :, 1] / 255.0
+    normalized_b = image[:, :, 2] / 255.0
+
+    normalized_image = np.stack((normalized_r, normalized_g, normalized_b), axis=-1)
+    return normalized_image
