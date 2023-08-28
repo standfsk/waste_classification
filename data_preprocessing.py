@@ -72,20 +72,6 @@ def move_by_dirs(path, dir, files):
         shutil.move(os.path.join(path, f), os.path.join(img_path, f))
         shutil.move(os.path.join(path, txtfile), os.path.join(lbl_path, txtfile))
 
-# bbox 정보를 yolo 형태로 변환
-def bboxtoyoloformat(size, box):
-    dw = 1./size[0]
-    dh = 1./size[1]
-    x = (box[0] + box[1])/2.0
-    y = (box[2] + box[3])/2.0
-    w = box[1] - box[0]
-    h = box[3] - box[2]
-    x = x*dw
-    w = w*dw
-    y = y*dh
-    h = h*dh
-    return (x,y,w,h)
-
 # bbox의 정보를 변경
 def change_bbox(values, json_file, changed_json):
     import json
@@ -185,17 +171,20 @@ def remove_unmatched(path, exts):
         except:
             os.remove(os.path.join(path, f+'.Json'))
 
-# json 파일의 바운딩 박스 값을 yolo format으로 변환
-def cvt2YOLO(row):
-    img_size = list(map(int, row['resolution'].values[0].split('*')))
-    x_min = row['x_min'].values[0]
-    y_min = row['y_min'].values[0]
-    x_max = row['x_max'].values[0]
-    y_max = row['y_max'].values[0]
-    bbox = [x_min, y_min, x_max, y_max]
-    obj_class = row['obj_class'].values[0]
-    x,y,w,h = bboxtoyoloformat(img_size, bbox)
-    return [obj_class, x, y, w, h]
+# bbox value를 YOLO format으로 변환
+def cvt2YOLO(img_size, bbox):
+    dw = 1./img_size[0]
+    dh = 1./img_size[1]
+    x = (bbox[0] + bbox[1])/2.0
+    y = (bbox[2] + bbox[3])/2.0
+    w = bbox[1] - bbox[0]
+    h = bbox[3] - bbox[2]
+    x = x*dw
+    w = w*dw
+    y = y*dh
+    h = h*dh
+
+    return (x,y,w,h)
     
 # 데이터 전처리
 def data_preprocess(path, classes_to_code, img_size, exts):
@@ -206,12 +195,6 @@ def data_preprocess(path, classes_to_code, img_size, exts):
     files = set([x.split('.')[0] for x in os.listdir(path) if x.split('.')[-1] in (exts['image_ext'] + exts['json_ext'])])
     for f in tqdm(files, desc='데이터 전처리'):
         image_file = f + '.jpg'
-        df = pd.read_csv(os.path.join(path, 'data1.csv'))
-        row = df[df.iloc[:,0] == f]
-        # json -> txt
-        YOLO_values = cvt2YOLO(row)
-        with open(f'{os.path.join(path, f)}.txt', 'w') as txtfile:
-            txtfile.write(f'{classes_to_code[YOLO_values[0]]} {YOLO_values[1]} {YOLO_values[2]} {YOLO_values[3]} {YOLO_values[4]}')
         # 이미지 데이터 resize
         img = Image.open(os.path.join(path, image_file))
         img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2RGB)
@@ -220,8 +203,13 @@ def data_preprocess(path, classes_to_code, img_size, exts):
         # 라벨 데이터 전처리
         bbox_resized = resize_bbox(img, resized_img, os.path.join(path, image_file.split('.')[0]+'.json'))
         change_bbox(bbox_resized, os.path.join(path, image_file.split('.')[0]+'.json'), os.path.join(path, image_file.split('.')[0]+'.json'))
+        # json -> txt
+        YOLO_values = cvt2YOLO(img_size, bbox_resized)
+        with open(f'{os.path.join(path, f)}.txt', 'w') as txtfile:
+            txtfile.write(f'{f.split("_")[0]} {YOLO_values[0]} {YOLO_values[1]} {YOLO_values[2]} {YOLO_values[3]}')
         # 라벨 데이터 제거
         os.remove(os.path.join(path, f+'.Json'))
+        
 
 # 데이터 분배 (8:1:1)
 def distribute_files(path, exts):
