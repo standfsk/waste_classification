@@ -3,6 +3,7 @@ import shutil
 import json
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 # 값이 디렉터리 인지 확인
 def check_dir(path):
@@ -21,7 +22,7 @@ def move_files(src, dest, exts):
 # 파일 복사
 def copy_files(src, dest, exts):
     files = [x for x in os.listdir(src) if x.split('.')[-1] in (exts['image_ext'] + exts['json_ext'])]
-    for f in files:
+    for f in tqdm(files, desc='파일 복사'):
         shutil.copy(os.path.join(src, f), os.path.join(dest, f))
 
 # 클래스 정보에 해당하지 않는 폴더들 삭제
@@ -127,7 +128,7 @@ def extract_imgattr(path, translation, headers):
 
     image_properties = {}
     removed_files = {}
-    for f in files:
+    for f in tqdm(files, desc='속성 추출'):
         values = []
         errors = []
         # json 파일 불러오기
@@ -203,9 +204,8 @@ def data_preprocess(path, classes_to_code, img_size, exts):
 
     # csv파일 정보를 기반으로 텍스트 파일 생성 // img_size, bbox,  obj_class
     files = set([x.split('.')[0] for x in os.listdir(path) if x.split('.')[-1] in (exts['image_ext'] + exts['json_ext'])])
-    for f in files:
+    for f in tqdm(files, desc='데이터 전처리'):
         image_file = f + '.jpg'
-        
         df = pd.read_csv(os.path.join(path, 'data1.csv'))
         row = df[df.iloc[:,0] == f]
         # json -> txt
@@ -220,9 +220,6 @@ def data_preprocess(path, classes_to_code, img_size, exts):
         # 라벨 데이터 전처리
         bbox_resized = resize_bbox(img, resized_img, os.path.join(path, image_file.split('.')[0]+'.json'))
         change_bbox(bbox_resized, os.path.join(path, image_file.split('.')[0]+'.json'), os.path.join(path, image_file.split('.')[0]+'.json'))
-        # # 이미지 데이터 표준화
-        # normalized_image = normalize_image(resized_img)
-        
         # 라벨 데이터 제거
         os.remove(os.path.join(path, f+'.Json'))
 
@@ -232,7 +229,7 @@ def distribute_files(path, exts):
     files = [x for x in os.listdir(path) if x.split('.')[-1] in exts['image_ext']]
     train_files, val_files, test_files = np.split(np.array(files), [int(len(files)*0.8), int(len(files)*0.9)])
     all_files = {'train': train_files, 'val': val_files, 'test': test_files}
-    for dir, file_list in all_files.items():
+    for dir, file_list in tqdm(all_files.items(), desc='데이터 분배'):
         move_by_dirs(path, dir, file_list)
 
 # 슬랙 봇에 메시지 보내기
