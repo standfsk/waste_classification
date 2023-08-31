@@ -1,25 +1,55 @@
-# pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 torchaudio==2.0.1 --index-url https://download.pytorch.org/whl/cu118​
-from ultralytics import YOLO
-import torch
+if __name__ == "__main__":
 
-USE_CUDA = torch.cuda.is_available()
-print(USE_CUDA)
+    from ultralytics import YOLO
+    import torch
+    import sys
+    import os
+    sys.path.append('D:/waste_datasets')
+    model_path = 'yolov8'
+    data_path = 'data'
 
-# Create a new YOLO model from scratch
-model = YOLO('yolov8n.yaml')
+    try:
+        # Create a new YOLO model from scratch
+        # model = YOLO('yolov8n.yaml')
 
-# Load a pretrained YOLO model (recommended for training)
-model = YOLO('yolov8n.pt')
-model.to('cuda')
+        # Load a pretrained YOLO model (recommended for training)
+        model = YOLO(os.path.join(model_path, 'yolov8x.pt'))
+        model.to('cuda')
 
-# Train the model using the 'coco128.yaml' dataset for 3 epochs
-results = model.train(data='data.yaml', epochs=3)
+        # Train the model
+        results = model.train(
+            model = os.path.join(model_path, 'yolov8x.pt'),
+            data = os.path.join(model_path, 'data.yaml'),
+            epochs = 100,
+            patience = 5,
+            batch = 32,
+            seed = 42,
+            optimizer = 'AdamW',
+            pretrained = True,
+            device = 'cuda',
+            save = True,
+            save_period = 1
+        )
 
-# Evaluate the model's performance on the validation set
-results = model.val()
+        # Evaluate the model's performance on the validation set
+        results = model.val(
+            model = os.path.join(model_path, 'yolov8x.pt'),
+            save_json = True,
+            device = 'cuda',
+            plots = True
+        )
+        
+        # Predict
+        results = model.predict(
+            source = os.path.join(data_path, 'test', 'images'),
+            save = True,
+            device = 'cuda',
+            save_conf = True,
+            save_crop = True
+        )
 
-# Perform object detection on an image using the model
-results = model('https://ultralytics.com/images/bus.jpg', device='cpu')
+    except Exception as e:
+        print(e)
 
-# Export the model to ONNX format
-success = model.export(format='onnx')
+    # Export the model to ONNX format
+    # success = model.export(format='onnx', path='.')
