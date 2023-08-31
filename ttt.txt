@@ -1,9 +1,0 @@
-localization: 좌표에 무엇이 있다.
-detection: 좌표에 a가 있다.
-
-resnet: object detection으로 변형하여 사용가능
-Vision Transformer: resnet과 비슷한 방식으로 기울기 소멸 문제를 해결하기 위해 잔차 블록 사용.
-
-image attributes
-# Make, Camera Model Name은 필요없어서 삭제
-# Resolution은 값이 너무 다양해서 분석의 의미 x
