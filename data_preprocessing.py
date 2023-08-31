@@ -96,7 +96,7 @@ def resize_bbox(image, resized_image, json_file):
     y2 = int(data['Bounding'][0]['y2'])
     y_ratio = resized_image.shape[0] / image.shape[0]
     x_ratio = resized_image.shape[1] / image.shape[1]
-    bbox_resized = list(map(round, [x1*x_ratio, y1*y_ratio, x2*x_ratio, y2*y_ratio]))
+    bbox_resized = list(map(round, [x1*x_ratio, x2*x_ratio, y1*y_ratio, y2*y_ratio]))
     return bbox_resized
 
 # 이미지 데이터 표준화
@@ -202,7 +202,7 @@ def data_preprocess(path, classes_to_code, img_size, exts):
         cv2.imwrite(os.path.join(path, image_file), resized_img)
         # 라벨 데이터 전처리
         bbox_resized = resize_bbox(img, resized_img, os.path.join(path, image_file.split('.')[0]+'.json'))
-        change_bbox(bbox_resized, os.path.join(path, image_file.split('.')[0]+'.json'), os.path.join(path, image_file.split('.')[0]+'.json'))
+        # change_bbox(bbox_resized, os.path.join(path, image_file.split('.')[0]+'.json'), os.path.join(path, image_file.split('.')[0]+'.json'))
         # json -> txt
         YOLO_values = cvt2YOLO(img_size, bbox_resized)
         with open(f'{os.path.join(path, f)}.txt', 'w') as txtfile:
