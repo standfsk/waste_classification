@@ -17,6 +17,7 @@ if __name__ == '__main__':
     classes = {'15': '비닐', '17': '유리병', '21': '종이류', '22': '캔류', '23': '페트병', '24': '플라스틱류'}
     classes_translation = {'비닐': 'vinyl', '유리병': 'glass', '종이류': 'paper', '캔류': 'can', '페트병': 'PET', '플라스틱류': 'plastic'}
     classes_to_code = {'vinyl': '15', 'glass': '17', 'paper': '21', 'can': '22', 'PET': '23', 'plastic': '24'}
+    # vinyl, glass, paper, can, PET, plastic
 
     # 이미지 속성 번역 딕셔너리
     imgattr_translation = {
@@ -44,6 +45,9 @@ if __name__ == '__main__':
 
     # 이미지 사이즈
     img_size = (640, 640)
+
+    # 오류 이미지
+    error_imgs = ['22_X006_C013_1015_0']
 
     # 백업 디렉터리가 없을 경우, 생성
     if not os.path.isdir(backup_path):

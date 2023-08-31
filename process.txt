@@ -1,0 +1,41 @@
+프로세스
+데이터 수집
+- aihub 생활폐기물 이미지 데이터셋
+
+데이터 저장
+- 하나의 폴더로 모으기
+- 백업 폴더에 파일 복사
+
+데이터 전처리
+- 이미지 데이터 전처리
+    - 이미지 resize
+    - 데이터 증강
+        - grayscale: 어두운 데이터가 필요할 경우 진행
+        - rotate: 45, 90, 135, 180, 225, 270, 315
+        
+- 라벨 데이터 전처리
+    - YOLO
+        - json -> txt
+        - json: [x1,y1,x2,y2] -> txt: object_class x_center y_center img_width img_height
+        - 이미지 데이터 리사이즈 시 바운딩 박스 값 리사이즈 비율로 계산하여 값 변경
+    - R-CNN: -
+    - DERT: -
+
+데이터 분배
+- train:val:test // 8:1:1로 나누어 저장
+- train/image: jpg 데이터 저장
+- train/label: json 데이터 저장
+- val/image: jpg 데이터 저장
+- val/label: json 데이터 저장
+- test/image: jpg 데이터 저장
+- test/label: json 데이터 저장
+
+모델 학습
+- 모델 parameter 조정
+    - earlystopping
+    - batch_size
+- 모델 epoch 단위로 저장
+- 학습 진행 시 학습한 모델을 불러와 진행
+
+
+

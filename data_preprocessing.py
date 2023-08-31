@@ -160,7 +160,7 @@ def extract_imgattr(path, translation, headers):
     df2.to_csv(os.path.join(path, 'removed_data1.csv'), encoding='cp949')
 
 # 필요없는 데이터 제거
-def remove_unmatched(path, exts):
+def remove_unmatched(path, exts, error_imgs):
     from collections import Counter
     files = Counter([x.split('.')[0] for x in os.listdir(path) if x.split('.')[-1] in (exts['image_ext'] + exts['json_ext'])])
     unmatched_files = [key for key, value in files.items() if value == 1]
@@ -170,6 +170,10 @@ def remove_unmatched(path, exts):
             os.remove(os.path.join(path, f+'.jpg'))
         except:
             os.remove(os.path.join(path, f+'.Json'))
+    
+    for f in error_imgs:
+        os.remove(os.path.join(path, f+'.jpg'))
+        os.remove(os.path.join(path, f+'.Json'))
 
 # bbox value를 YOLO format으로 변환
 def cvt2YOLO(img_size, bbox):
