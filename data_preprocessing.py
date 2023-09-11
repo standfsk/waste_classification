@@ -172,8 +172,9 @@ def remove_unmatched(path, exts, error_imgs):
             os.remove(os.path.join(path, f+'.Json'))
     
     for f in error_imgs:
-        os.remove(os.path.join(path, f+'.jpg'))
-        os.remove(os.path.join(path, f+'.Json'))
+        if os.path.exists(path, f+'.jpg'):
+            os.remove(os.path.join(path, f+'.jpg'))
+            os.remove(os.path.join(path, f+'.Json'))
 
 # bbox value를 YOLO format으로 변환
 def cvt2YOLO(img_size, bbox):
@@ -217,9 +218,10 @@ def data_preprocess(path, classes_to_code, img_size, exts):
 
 # 데이터 분배 (8:1:1)
 def distribute_files(path, exts):
-    import numpy as np
+    from sklearn.model_selection import train_test_split
     files = [x for x in os.listdir(path) if x.split('.')[-1] in exts['image_ext']]
-    train_files, val_files, test_files = np.split(np.array(files), [int(len(files)*0.8), int(len(files)*0.9)])
+    train_files, test_files = train_test_split(files, test_size=0.1, random_state=42)
+    train_files, val_files = train_test_split(train_files, test_size=0.1, random_state=42)
     all_files = {'train': train_files, 'val': val_files, 'test': test_files}
     for dir, file_list in tqdm(all_files.items(), desc='데이터 분배'):
         move_by_dirs(path, dir, file_list)
