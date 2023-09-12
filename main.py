@@ -61,7 +61,7 @@ if __name__ == '__main__':
     # data_preprocessing.gather_data(dataset_path, data_path, exts)
 
     # 필요없는 데이터 제거
-    data_preprocessing.remove_unmatched(data_path, exts)
+    data_preprocessing.remove_unmatched(data_path, exts, error_imgs)
     print("필요없는 데이터 제거 완료")
 
     # 이미지 속성 값 추출
@@ -83,8 +83,3 @@ if __name__ == '__main__':
     # 파일 분배
     data_preprocessing.distribute_files(data_path, exts)
     print("파일 분배 완료")
-
-    # 작업 종료시 슬랙에 메시지 전송
-    token = 'xoxb-5713411137014-5773768770325-TvV4SRyB8WMOwl7yh3SO69Dx'
-    text = '작업 종료'
-    data_preprocessing.end_message(token, text)
