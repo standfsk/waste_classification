@@ -219,10 +219,11 @@ def data_preprocess(path, classes_to_code, img_size, exts):
 # 데이터 분배 (8:1:1)
 def distribute_files(path, exts):
     from sklearn.model_selection import train_test_split
-    files = [x for x in os.listdir(path) if x.split('.')[-1] in exts['image_ext']]
-    train_files, test_files = train_test_split(files, test_size=0.1, random_state=42)
-    train_files, val_files = train_test_split(train_files, test_size=0.1, random_state=42)
-    all_files = {'train': train_files, 'val': val_files, 'test': test_files}
+    images = [x for x in os.listdir(path) if x.split('.')[-1] in exts['image_ext']]
+    labels = [x.split('_')[0] for x in images]
+    train_input, test_input, train_target, test_target = train_test_split(images, labels, test_size=0.1, random_state=42, shuffle=True, stratify=labels)
+    train_input, val_input, train_target, val_target = train_test_split(train_input, train_target, test_size=0.1, random_state=42, shuffle=True, stratify=train_target)
+    all_files = {'train': train_input, 'val': val_input, 'test': test_input}
     for dir, file_list in tqdm(all_files.items(), desc='데이터 분배'):
         move_by_dirs(path, dir, file_list)
 
