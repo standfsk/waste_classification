@@ -172,7 +172,7 @@ def remove_unmatched(path, exts, error_imgs):
             os.remove(os.path.join(path, f+'.Json'))
     
     for f in error_imgs:
-        if os.path.exists(path, f+'.jpg'):
+        if os.path.exists(os.path.join(path, f+'.jpg')):
             os.remove(os.path.join(path, f+'.jpg'))
             os.remove(os.path.join(path, f+'.Json'))
 
