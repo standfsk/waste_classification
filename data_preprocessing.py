@@ -37,6 +37,7 @@ def gather_data(path, data_path, exts):
             gather_data(os.path.join(path, path2))
     else:
         move_files(path, data_path, exts)
+        return
 
 # r/g/b -> hexadecimal
 def rgb_to_hex(r, g, b):
